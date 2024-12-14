@@ -3,21 +3,77 @@ library(shinythemes)
 library(shinylive)
 
 ui <- fluidPage(
-  theme = shinytheme("cerulean"),
+  theme = shinytheme("darkly"),
   tags$style(HTML(
     "body { margin-top: 20px; }
-     .custom-paragraph { text-align: left; margin: 20px auto; max-width: 800px; }
-     .custom-list { margin-left: 40px; }
-     .section-title { font-weight: bold; margin-top: 20px; }
-     p { text-indent: 2em; }
-    "
+   .custom-paragraph { text-align: left; margin: 5px auto; max-width: 700px; }
+   .custom-list { margin-left: 40px; }
+   .section-title { font-weight: bold; margin-top: 20px; }
+   p { text-indent: 2em; } /* General paragraphs */
+   #viewer-container {
+     width: 100%;
+     height: calc(100vh - 50px); /* Full viewport height minus the Back button height */
+     overflow: hidden;
+   }
+   #viewer-container iframe {
+     width: 100%;
+     height: 100%;
+     border: none;
+   }
+   .btn-glow {
+     border: 2px solid red;
+     box-shadow: 0 0 15px red;
+     animation: glow 1.5s infinite;
+   }
+   @keyframes glow {
+     0% { box-shadow: 0 0 5px red; }
+     50% { box-shadow: 0 0 15px red; }
+     100% { box-shadow: 0 0 5px red; }
+   }
+   
+   h3 {
+     margin-bottom: 10px;
+     text-align: left;
+   }
+   .doc-container {
+     display: flex; 
+     justify-content: flex-start;
+     align-items: flex-start; 
+     flex-wrap: wrap;
+     max-width: 700px;
+     margin: 20px 0; /* Adds space below the instructional text */
+     gap: 20px;
+   }
+   .doc-container div {
+     text-align: center;
+     margin: 10px;
+   }
+   .doc-container div p {
+     margin-top: 5px;
+     text-align: left;
+     text-indent: 0;
+   }
+   .main-panel-content {
+     text-align: left; 
+     margin: 5px auto; 
+     max-width: 700px;
+   }
+  "
   )),
   sidebarLayout(
     sidebarPanel(
-      h6("Navigation"),
+      div(
+        style = "text-align: left; 
+        margin-bottom: 15px;
+        margin-top: -20px;",
+        h4("Geography 690 Portfolio"),
+        h5("Michael Peckham", style = "margin-bottom: 25px;"),
+      ),
+      h6("Navigation", style = "margin-top: 25px;"),
       navlistPanel(
         tabPanel("Introduction", value = "introduction"),
         tabPanel("Employment Package", value = "employment_package"),
+        tabPanel("Work Portfolio", value = "portfolio"),
         tabPanel("Informational Interview", value = "informational_interview"),
         tabPanel("LinkedIn", value = "linkedin"),
         tabPanel("AI & Social Media", value = "ai_social_media"),
@@ -38,31 +94,109 @@ ui <- fluidPage(
 
 server <- function(input, output, session) {
   
+  # Reactive value for selected document
   selected_doc <- reactiveVal(NULL)
   
+  # Switch to the document viewer when thumbnails are clicked
   observeEvent(input$view_coverletter, {
-    selected_doc("CoverLetter_Portfolio.pdf") 
-  })
-
-  output$documentViewer <- renderUI({
-    req(selected_doc()) # Ensure a document is selected before rendering
-    tagList(
-      actionButton("back_to_list", "Back to List", class = "btn btn-secondary"),
-      tags$iframe(
-        src = selected_doc(),
-        width = "100%",
-        height = "800px",
-        frameborder = "0"
-      )
-    )
+    selected_doc("CoverLetter_Portfolio.pdf")
+    updateTabsetPanel(session, "tabs", selected = "document_viewer")
   })
   
+  observeEvent(input$view_resume, {
+    selected_doc("Peckham_SewerAI_Resume.pdf")
+    updateTabsetPanel(session, "tabs", selected = "document_viewer")
+  })
+  
+  observeEvent(input$view_references, {
+    selected_doc("ReferencesExample.pdf")
+    updateTabsetPanel(session, "tabs", selected = "document_viewer")
+  })
+  
+  # Back to list: Switch back to Employment Package tab
+  observeEvent(input$back_to_list, {
+    selected_doc(NULL)
+    updateTabsetPanel(session, "tabs", selected = "employment_package")
+  })
+
   observeEvent(input$back_to_list, {
     selected_doc(NULL) # Clear the selected document
   })
   
+  observeEvent(input$tabs, {
+    if (input$tabs != "employment_package") {
+      selected_doc(NULL) # Clear the selected document if leaving the Employment Package tab
+    }
+  })
+  
+  observeEvent(input$goto_research, {
+    updateTabsetPanel(session, "portfolio_subtabs", selected = "research")
+  })
+  
+  observeEvent(input$goto_analysis, {
+    updateTabsetPanel(session, "portfolio_subtabs", selected = "analysis")
+  })
+  
+  observeEvent(input$goto_static, {
+    updateTabsetPanel(session, "portfolio_subtabs", selected = "static")
+  })
+  
+  observeEvent(input$goto_interactive, {
+    updateTabsetPanel(session, "portfolio_subtabs", selected = "interactive")
+  })
+  
+  # When viewing CCNZ
+  observeEvent(input$view_ccnz, {
+    selected_doc("21st Century Climate in New Zealand.pdf")
+    updateTabsetPanel(session, "tabs", selected = "document_viewer")
+  })
+  
+  # When viewing Mt Shasta
+  observeEvent(input$view_shasta, {
+    selected_doc("MtShasta.pdf")
+    updateTabsetPanel(session, "tabs", selected = "document_viewer")
+  })
+  
+  # Back to Research Papers
+  observeEvent(input$back_to_research, {
+    selected_doc(NULL)
+    updateTabsetPanel(session, "portfolio_subtabs", selected = "research")
+  })
+  
+  # Document Viewer Output
+  output$documentViewer <- renderUI({
+    req(selected_doc())
+    tagList(
+      actionButton("back_to_research", "Back to Research Papers", class = "btn btn-secondary btn-glow"),
+      tags$iframe(
+        src = selected_doc(),
+        width = "100%",
+        height = "800px",
+        frameborder = "0",
+        style = "margin-top: 10px;"
+      )
+    )
+  })
+  
+  
+  
+  
   output$mainOutput <- renderUI({
-    switch(input$tabs,
+    if (!is.null(selected_doc())) {
+      tagList(
+        actionButton("back_to_list", "Back to Employment Package", class = "btn btn-secondary btn-glow"),
+        div(
+          id = "viewer-container", # Container for full-screen iframe
+          tags$iframe(
+            src = selected_doc(),
+            width = "100%",
+            height = "100%",
+            frameborder = "0"
+          )
+        )
+      )
+    } else {
+      switch(input$tabs,
            "introduction" = tagList(
              div(class = "custom-paragraph",
              h3("Introduction"),
@@ -74,18 +208,87 @@ server <- function(input, output, session) {
            ),
            
            "employment_package" = tagList(
-             h3("Employment Package"),
-             p("Click on a document thumbnail below to view it:"),
-             
-             # Thumbnails for documents
-             div(
-               class = "doc-container",
-               div(class = "doc-thumbnail", actionLink("view_coverletter", "Cover Letter"))
-             ),
-             
-             # Placeholder for displaying the selected document
-             uiOutput("documentViewer")
+             div(class = "main-panel-content", # Added class to add padding
+               h3("Employment Package"),
+               h6("Click on a document thumbnail below to view it:"),
+               div(
+                 class = "doc-container",
+                 
+                 # Cover Letter
+                 div(
+                   actionLink("view_coverletter", div(
+                     tags$img(src = "cover_letter_thumbnail.png", width = "90px", height = "120px"), 
+                     tags$p("Cover Letter", style = "margin-top: 5px; text-indent: 0; text-align: center;")
+                   ))
+                 ),
+                 
+                 # Resume
+                 div(
+                   actionLink("view_resume", div(
+                     tags$img(src = "resume_thumbnail.png", width = "90px", height = "120px"),
+                     tags$p("Resume", style = "margin-top: 5px; text-indent: 0; text-align: center;")
+                   ))
+                 ),
+                 
+                 # References
+                 div(
+                   actionLink("view_references", div(
+                     tags$img(src = "references_thumbnail.png", width = "90px", height = "120px"),
+                     tags$p("References", style = "margin-top: 5px; text-indent: 0; text-align: center;")
+                   ))
+                 )
+               )
+             )
            ),
+           
+           "document_viewer" = uiOutput("documentViewer"),
+           
+           "portfolio" = tagList(
+             h3("Work Portfolio"),
+             h6("Explore my work by selecting one of the sections below."),
+             
+             # Subtabs
+             tabsetPanel(
+               id = "portfolio_subtabs", # ID to control the active subtab dynamically
+               tabPanel(
+                 "Research Papers", 
+                 value = "research", 
+                 h4("Research Papers"),
+                 
+                 # 21st Century Climate in New Zealand
+                 div(
+                   style = "margin-bottom: 20px;",
+                   h5("21st Century Climate in New Zealand"),
+                   p("This research explores climate projections for New Zealand in the 21st century, focusing on temperature and precipitation patterns under various emission scenarios."),
+                   div(
+                     style = "text-align: center;",
+                     actionLink("view_ccnz", div(
+                       tags$img(src = "CCNZ_thumbnail.png", width = "100px", height = "150px"),
+                       tags$p("21st Century Climate in New Zealand", style = "margin-top: 5px; text-align: center;")
+                     ))
+                   )
+                 ),
+                 
+                 # Mount Shasta
+                 div(
+                   style = "margin-bottom: 20px;",
+                   h5("Mount Shasta"),
+                   p("This paper investigates the glacial retreat on Mount Shasta and its implications for water resources and ecosystems."),
+                   div(
+                     style = "text-align: center;",
+                     actionLink("view_shasta", div(
+                       tags$img(src = "MtShasta_thumbnail.png", width = "100px", height = "150px"),
+                       tags$p("Mount Shasta", style = "margin-top: 5px; text-align: center;")
+                     ))
+                   )
+                 )
+               ),
+               tabPanel("Data Analysis Projects", value = "analysis", h4("Data Analysis Projects"), p("Content for data analysis projects here...")),
+               tabPanel("Static Maps", value = "static", h4("Static Maps"), p("Content for static maps here...")),
+               tabPanel("Interactive Maps", value = "interactive", h4("Interactive Maps"), p("Content for interactive maps here..."))
+             )
+           ),
+           
            
            
            
@@ -98,8 +301,9 @@ server <- function(input, output, session) {
              ),
            
            "linkedin" = tagList(
+             div(class = "main-panel-content",
              h3("LinkedIn Profile"),
-             p(
+             h6(
                "LinkedIn link: ",
                a(href = "https://www.linkedin.com/in/mike-peckham-kuruka?trk=profile-badge", 
                  "Michael Peckham", 
@@ -111,6 +315,7 @@ server <- function(input, output, session) {
              tags$img(src = "Experience2.png", width = "100%"),
              tags$img(src = "Experience3.png", width = "100%"),
              tags$img(src = "Education.png", width = "100%")
+             )
            ),
            
            
@@ -119,6 +324,7 @@ server <- function(input, output, session) {
            "action_plan" = h3("Action Plan Content Goes Here"),
            h3("Select a tab to view content")
     )
+    }
   })
 }
 

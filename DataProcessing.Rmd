@@ -1,0 +1,86 @@
+---
+title: "Data Processing"
+author: "Your Name"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    theme: cerulean
+    highlight: textmate
+  pdf_document: default
+  word_document: default
+params:
+  pdf_dir:
+    value: "www/" # Directory of PDFs
+  thumbnail_dir:
+    value: "www/" # Directory to save thumbnails
+  thumbnail_size:
+    value: "100x150" # Thumbnail dimensions
+---
+
+```{r}
+# Install required packages
+install.packages("pdftools")
+install.packages("magick")
+
+library(pdftools)
+library(magick)
+
+# Path to your PDF files
+pdf_files <- c(
+  "www/CoverLetter_Portfolio.pdf",
+  "www/Peckham_SewerAI_Resume.pdf",
+  "www/ReferencesExample.pdf"
+)
+
+# Generate thumbnails
+output_thumbnails <- c("www/cover_letter_thumbnail.png", 
+                       "www/resume_thumbnail.png", 
+                       "www/references_thumbnail.png")
+
+for (i in seq_along(pdf_files)) {
+  # Convert the first page of each PDF to a PNG thumbnail
+  img <- pdf_render_page(pdf_files[i], page = 1, dpi = 150)
+  magick_img <- image_read(img)
+  
+  # Resize the image for thumbnail size
+  thumbnail <- image_resize(magick_img, "100x150")
+  image_write(thumbnail, output_thumbnails[i])
+}
+
+```
+
+```{r}
+
+# List of PDF files and their output thumbnails
+pdf_files <- c(
+  "www/MtShasta.pdf",
+  "www/21st Century Climate in New Zealand.pdf"
+)
+
+# Generate corresponding thumbnail names automatically
+output_thumbnails <- gsub("www/(.*)\\.pdf", "www/\\1_thumbnail.png", pdf_files)
+
+# Generate thumbnails for each PDF
+for (i in seq_along(pdf_files)) {
+  # Render the first page of the PDF
+  img <- pdf_render_page(pdf_files[i], page = 1, dpi = 150)
+  
+  # Convert to magick image
+  magick_img <- image_read(img)
+  
+  # Resize the image to a standard thumbnail size
+  thumbnail <- image_resize(magick_img, "100x150")
+  
+  # Write the thumbnail to the output file
+  image_write(thumbnail, output_thumbnails[i])
+}
+
+# Print paths to confirm successful generation
+print(output_thumbnails)
+
+
+
+```
